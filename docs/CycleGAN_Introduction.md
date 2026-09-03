@@ -159,33 +159,79 @@ L_identity(G, F) = E[||G(y) - y||₁] + E[||F(x) - x||₁]
 ### Training Algorithm
 
 ```python
-def train_cyclegan(X_data, Y_data, epochs=200):
-    G = Generator()  # X -> Y
-    F = Generator()  # Y -> X
-    DX = Discriminator()  # Distinguish X from F(Y)
-    DY = Discriminator()  # Distinguish Y from G(X)
-    
-    for epoch in range(epochs):
-        for x, y in zip(X_data, Y_data):
-            # Forward pass
-            fake_y = G(x)
-            fake_x = F(y)
-            
-            # Cycle reconstruction
-            cyc_x = F(fake_y)
-            cyc_y = G(fake_x)
-            
-            # Identity mapping
-            id_y = G(y)
-            id_x = F(x)
-            
-            # Compute losses
-            gen_loss = compute_generator_loss(...)
-            disc_loss = compute_discriminator_loss(...)
-            
-            # Update weights
-            update_generators(gen_loss)
-            update_discriminators(disc_loss)
+for epoch in range(epochs):
+
+    for x, y in dataloader:
+
+        # -------------------------
+        # 1. Generate fake images
+        # -------------------------
+
+        fake_y = G(x)
+        fake_x = F(y)
+
+        # -------------------------
+        # 2. Cycle reconstruction
+        # -------------------------
+
+        rec_x = F(fake_y)
+        rec_y = G(fake_x)
+
+        # -------------------------
+        # 3. Identity mapping
+        # -------------------------
+
+        id_x = F(x)
+        id_y = G(y)
+
+        # -------------------------
+        # 4. Generator losses
+        # -------------------------
+
+        loss_GAN_G = GAN_loss(DY(fake_y))
+        loss_GAN_F = GAN_loss(DX(fake_x))
+
+        loss_cycle = (
+            L1(rec_x, x) +
+            L1(rec_y, y)
+        )
+
+        loss_identity = (
+            L1(id_x, x) +
+            L1(id_y, y)
+        )
+
+        loss_G = (
+            loss_GAN_G +
+            loss_GAN_F +
+            lambda_cycle * loss_cycle +
+            lambda_identity * loss_identity
+        )
+
+        # -------------------------
+        # 5. Update G and F
+        # -------------------------
+
+        optimizer_G.zero_grad()
+        loss_G.backward()
+        optimizer_G.step()
+
+        # -------------------------
+        # 6. Discriminator losses
+        # -------------------------
+
+        loss_DY = ...
+        loss_DX = ...
+
+        loss_D = loss_DY + loss_DX
+
+        # -------------------------
+        # 7. Update DX and DY
+        # -------------------------
+
+        optimizer_D.zero_grad()
+        loss_D.backward()
+        optimizer_D.step()
 ```
 
 ## Applications in Medical Imaging
